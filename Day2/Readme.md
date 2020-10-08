@@ -147,7 +147,7 @@
 
 시스템 콜 예제
 
-'''C
+```C
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -171,7 +171,7 @@ int main() {
 
     return 0;
 }
-'''
+```
 
 * 웃긴 이야기. create가 아닌 creat 인것 -> 보면 알겠지만 오타인데, 이제는 고칠 수 없게 됨. 해당 명령어 개발한 개발자 아직도 후회중이라고 함
 
