@@ -144,3 +144,35 @@
 |장치 조작| * 장치 요구와 해제 * 장치 속성 획득과 설정 <br/> * 장치 읽기와 쓰기, 재배치 * 논리적 부착이나 장치 제거|
 |정보 관리| * 시간과 날짜의 설정과 획득 * 데이터의 설정과 획득 <br/> 프로세스 파일, 장치 속성의 설정과 획득|
 |통신| * 통신 연결의 생성과 제거 * 정보 상태 전달 <br/> * 메시지의 송수신 * 원격 장치의 부착 및 제거|
+
+시스템 콜 예제
+
+'''C
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+
+// filename 으로 파일을 만드는 코드. creat 시스템 콜 이용.
+//create 이 아닌것에 주의하기.
+
+int main() {
+    int fd;
+    char *filename = "test_file";
+    //fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644); //아래 코드와 동일하다고 한다.
+    fd = creat(filename, 0644);
+    if (fd == -1) {
+        printf("this is error");
+    }
+    else{
+        printf("create file!\n");
+        printf("this is fd number %d", fd); //fd = 3
+    }
+
+    return 0;
+}
+'''
+
+* 웃긴 이야기. create가 아닌 creat 인것 -> 보면 알겠지만 오타인데, 이제는 고칠 수 없게 됨. 해당 명령어 개발한 개발자 아직도 후회중이라고 함
+
+ 
