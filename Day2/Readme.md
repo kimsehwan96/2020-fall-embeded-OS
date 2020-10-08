@@ -73,7 +73,7 @@
 
 * 추가적 공부~!
 
-[1](.images/1.png)
+[1](images/1.png)
 
 - 맥은 /System/Library/CoreServices/ 밑에 boot.efi 형식으로 boot에 필요한 파일들 저장
 - 리눅스는 요즘 보통 /boot/efi 라는 지점에 마운트 된 파일을 읽고 부팅한다
