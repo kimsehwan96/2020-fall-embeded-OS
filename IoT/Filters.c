@@ -8,7 +8,7 @@ float LowPassFilter(float tau,float ts, float pre_y, float x){
 }
 
 void HighPassFilter(float tau,float ts, float pre_x, float pre_y, float x){
-    return tau/(tau + ts) * pre_y + tau / (tau + ts) * (x - pre_x);
+    return tau / (tau + ts) * pre_y + tau / (tau + ts) * (x - pre_x);
     // tau -> 시정수
     // ts 샘플링 타임
     // pre_x 이전 입력값
