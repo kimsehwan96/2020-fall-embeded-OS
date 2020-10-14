@@ -4,7 +4,6 @@ float LowPassFilter(float tau,float ts, float pre_y, float x){
     // ts는 샘플링 타임
     // pre_y는 이전 결과 값
     // x는 현재 input.
-    // 그냥 이케 구현하는게 맞나???
 }
 
 void HighPassFilter(float tau,float ts, float pre_x, float pre_y, float x){
