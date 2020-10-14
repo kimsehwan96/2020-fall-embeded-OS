@@ -4,7 +4,7 @@
 
 * Low pass filter
 
-![1](images.1.png)
+![1](images/1.png)
 
 위 그림은 Low Pass filter를 나타낸 회로도이다.
 
