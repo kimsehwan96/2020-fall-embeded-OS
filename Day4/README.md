@@ -515,7 +515,7 @@ while (true) {
     out = (out + 1) % BUFFER_SIZE;
     counter--;
 }
-
+```
 
 - 경쟁 상태 race condition
     - 경쟁 상태의 개념
