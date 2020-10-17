@@ -217,6 +217,47 @@ static void __sched notrace __schedule(bool preempt)
 
 * 위는 `__schedule` 코드다..... 분석가능?
 
+
+
+*스케줄링 클랴스 구조 (커널 2.6.23 버전)
+
+```C
+struct sched_class { /* Defined in 2.6.23:/usr/include/linux/sched.h */
+  struct sched_class *next;
+  void (*enqueue_task) (struct rq *rq, struct task_struct *p, int wakeup);
+  void (*dequeue_task) (struct rq *rq, struct task_struct *p, int sleep);
+  void (*yield_task) (struct rq *rq, struct task_struct *p);
+  void (*check_preempt_curr) (struct rq *rq, struct task_struct *p);
+  struct task_struct * (*pick_next_task) (struct rq *rq);
+  void (*put_prev_task) (struct rq *rq, struct task_struct *p);
+  unsigned long (*load_balance) (struct rq *this_rq, int this_cpu,
+                 struct rq *busiest,
+                 unsigned long max_nr_move, unsigned long max_load_move,
+                 struct sched_domain *sd, enum cpu_idle_type idle,
+                 int *all_pinned, int *this_best_prio);
+  void (*set_curr_task) (struct rq *rq);
+  void (*task_tick) (struct rq *rq, struct task_struct *p);
+  void (*task_new) (struct rq *rq, struct task_struct *p);
+};
+
+```
+
+- 위 구조체에서 중요한 함수들
+    1. `enqueue_task()` : 태스크가 실행가능한 상태로 진입할 때 호출됩니다.
+    2. `dequeue_task()` : 태스크가 더 이상 실행 가능한 상태가 아닐 때 호출됩니다. 
+    3. `yield_task()`: 태스크가 스스로 yiedl() 시스템콜을 실행했을 때 호춣됩니다.
+    4. `check_preempt_curr()`: 현재 실행중인 태스크를 선점(preempt)할 수  있는지 검사합니다.
+    5. `pick_next_task()`: 실행할 다음 태스크를 선택합니다.
+    6. `put_prev_task()`: 실행중인 태스크를 다시 내부 자료구조에 넣을 때 호출됩니다.
+    7. `load_balance()`: 코어 스케줄러가 태스크 부하를 분산하고자 할 때 호출됩니다.
+    8. `set_curr_task()` : 태스크의 스케줄링 클래스나 태스크 그룹을 바꿀 때 호출됩니다.
+    9. `task_tick()`: 타이머 틱 함수가 호출합니다.
+    10. `task_new()`: 새 태스크가 생성되었을때 그룹 스케줄링을 위해 호출 됨.
+
+
+* 스케줄링 클래스 구조는 기본 CFS스케줄러에서 사용하는 내부 자료구조와 밀접하게 연관되어있습니다. 
+* 예를 들어 각 CPU별로 유지하면서 콜백 함수의 인자로 넘겨지는 실행 큐(sturct rq)는 CFS 스케줄러를 위해 채택한 레드 블랙 트리자료구조를 사용함.
+
 *스케줄링 단계*
 ![3](images/3.png)
 
@@ -239,4 +280,9 @@ static void __sched notrace __schedule(bool preempt)
     - 작업 스케줄러라고도 하며,스케줄링에 따라 디스크에서 메모리로 작업 가져와 처리할 순서 결정, 제출 시간, 작업 길이(용량)등의 정보 필요
 * 단기 스케줄러
     - 메모리에 적재된 프로세스 중 프로세서를 할당하여 실행상태과 되도록 결정하는 프로세스 스케줄링을 한다. 이때는 프로세스가 실행하는데 필요한 자원의 요청 만족해야 함
-    
+
+
+![7](images/7.png)
+
+*정기 스케줄러와 단기 스케줄러*
+
