@@ -222,38 +222,130 @@ static void __sched notrace __schedule(bool preempt)
 *스케줄링 클랴스 구조 (커널 2.6.23 버전)
 
 ```C
-struct sched_class { /* Defined in 2.6.23:/usr/include/linux/sched.h */
-  struct sched_class *next;
-  void (*enqueue_task) (struct rq *rq, struct task_struct *p, int wakeup);
-  void (*dequeue_task) (struct rq *rq, struct task_struct *p, int sleep);
-  void (*yield_task) (struct rq *rq, struct task_struct *p);
-  void (*check_preempt_curr) (struct rq *rq, struct task_struct *p);
-  struct task_struct * (*pick_next_task) (struct rq *rq);
-  void (*put_prev_task) (struct rq *rq, struct task_struct *p);
-  unsigned long (*load_balance) (struct rq *this_rq, int this_cpu,
-                 struct rq *busiest,
-                 unsigned long max_nr_move, unsigned long max_load_move,
-                 struct sched_domain *sd, enum cpu_idle_type idle,
-                 int *all_pinned, int *this_best_prio);
-  void (*set_curr_task) (struct rq *rq);
-  void (*task_tick) (struct rq *rq, struct task_struct *p);
-  void (*task_new) (struct rq *rq, struct task_struct *p);
-};
+struct sched_class {
 
+#ifdef CONFIG_UCLAMP_TASK
+	int uclamp_enabled;
+#endif
+
+	void (*enqueue_task) (struct rq *rq, struct task_struct *p, int flags);
+	void (*dequeue_task) (struct rq *rq, struct task_struct *p, int flags);
+	void (*yield_task)   (struct rq *rq);
+	bool (*yield_to_task)(struct rq *rq, struct task_struct *p);
+
+	void (*check_preempt_curr)(struct rq *rq, struct task_struct *p, int flags);
+
+	struct task_struct *(*pick_next_task)(struct rq *rq);
+
+	void (*put_prev_task)(struct rq *rq, struct task_struct *p);
+	void (*set_next_task)(struct rq *rq, struct task_struct *p, bool first);
+
+#ifdef CONFIG_SMP
+	int (*balance)(struct rq *rq, struct task_struct *prev, struct rq_flags *rf);
+	int  (*select_task_rq)(struct task_struct *p, int task_cpu, int sd_flag, int flags);
+	void (*migrate_task_rq)(struct task_struct *p, int new_cpu);
+
+	void (*task_woken)(struct rq *this_rq, struct task_struct *task);
+
+	void (*set_cpus_allowed)(struct task_struct *p,
+				 const struct cpumask *newmask);
+
+	void (*rq_online)(struct rq *rq);
+	void (*rq_offline)(struct rq *rq);
+#endif
+
+	void (*task_tick)(struct rq *rq, struct task_struct *p, int queued);
+	void (*task_fork)(struct task_struct *p);
+	void (*task_dead)(struct task_struct *p);
+
+	/*
+	 * The switched_from() call is allowed to drop rq->lock, therefore we
+	 * cannot assume the switched_from/switched_to pair is serliazed by
+	 * rq->lock. They are however serialized by p->pi_lock.
+	 */
+	void (*switched_from)(struct rq *this_rq, struct task_struct *task);
+	void (*switched_to)  (struct rq *this_rq, struct task_struct *task);
+	void (*prio_changed) (struct rq *this_rq, struct task_struct *task,
+			      int oldprio);
+
+	unsigned int (*get_rr_interval)(struct rq *rq,
+					struct task_struct *task);
+
+	void (*update_curr)(struct rq *rq);
+
+#define TASK_SET_GROUP		0
+#define TASK_MOVE_GROUP		1
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+	void (*task_change_group)(struct task_struct *p, int type);
+#endif
+} __aligned(STRUCT_ALIGNMENT); /* STRUCT_ALIGN(), vmlinux.lds.h */
 ```
 
 - 위 구조체에서 중요한 함수들
-    1. `enqueue_task()` : 태스크가 실행가능한 상태로 진입할 때 호출됩니다.
-    2. `dequeue_task()` : 태스크가 더 이상 실행 가능한 상태가 아닐 때 호출됩니다. 
-    3. `yield_task()`: 태스크가 스스로 yiedl() 시스템콜을 실행했을 때 호춣됩니다.
-    4. `check_preempt_curr()`: 현재 실행중인 태스크를 선점(preempt)할 수  있는지 검사합니다.
-    5. `pick_next_task()`: 실행할 다음 태스크를 선택합니다.
-    6. `put_prev_task()`: 실행중인 태스크를 다시 내부 자료구조에 넣을 때 호출됩니다.
-    7. `load_balance()`: 코어 스케줄러가 태스크 부하를 분산하고자 할 때 호출됩니다.
-    8. `set_curr_task()` : 태스크의 스케줄링 클래스나 태스크 그룹을 바꿀 때 호출됩니다.
-    9. `task_tick()`: 타이머 틱 함수가 호출합니다.
-    10. `task_new()`: 새 태스크가 생성되었을때 그룹 스케줄링을 위해 호출 됨.
+    - `enqueue_task()` : 태스크가 실행가능한 상태로 진입할 때 호출됨
+    - `dequeue_task()` : 태스크가 더 이상 실행 가능한 상태가 아닐 때 호출됨
+    - `yield_task()`: yield() 함수를 실행하여 현재 태스크를 스케줄 아웃 하고, 다음 태스크에 양보 할 때 사용
+    - `yield_to_task()` : 이 스케줄러의 지정한 태스크로 양보 할 때 호출된다
+    - `check_preempt_curr()`: 현재 실행중인 태스크를 선점(preempt)할 수 있는지 검사함
+    - `pick_next_task()`: 실행할 다음 태스크를 선택함
+    - `put_prev_task()`: 실행중인 태스크를 다시 내부 자료구조에 넣을 때 호출됨
+    - `balance()`: 코어 스케줄러가 태스크 부하를 분산하고자 할 때 호출됨
+    - `select_task_rq()` : 태스크가 실행될 cpu의 런큐를 선택할때 호출
+    - `migrate_task_rq()` : 태스크를 마이그레이션 할 때 사용
+    - `task_woken()` : 태스크가 깨어날 때 사용할 cpu의 런큐를 지정할 때 호출된다.
+    - `set_cpus_allowed()` : 태스크에 사용될 cpu 마스크를 지정할 때 호출 된다.
+    - `set_curr_task()` : 태스크의 스케줄링 클래스나 태스크 그룹을 바꿀 때 호출됨
+    - `task_tick()`: 스케줄 틱이 발생될 때 호출 됨
+        - hrtick이 사용될 때 queued=1 로 호출된다
+        - 일반 고정 스케줄 틱이 사용될 때 queued=0 으로 호출 됨
+    - `task_fork()` : fork한 태스크를 스케줄러가 관리하는 런큐에 엔큐할때 호출된다.
+    - `task_dead()` : 지정한 태스크를 dead처리하기 위해 런큐에서 디큐할 때 호출된다.
+    - `switched_from()` : 스케줄러 스위칭 전에 기존 실행중인 스케줄러에서 동작했었던 태스크를 detach 할 때 호출 됨
+    - `switched_to()` : 스케줄러 스위칭 후에 새로 실행할 스케줄러에 태스크를 attach 할 때 호출 됨
+    - `prio_changed()` : 태스크의 우선순위를 변경할 때 호출 됨
+    - `get_rr_interval()` : 라운드 로빈 인터벌 타임 값을 알아올 때 호출 된다.
+    - `task_change_group()`: 태스크의 태스크 그룹 스케줄링을 위해 호출 됨.
 
+*core.c의 구조*
+
+![core](images/core.png)
+
+*스케줄러 core 명령들*
+![opers](images/opers.png)
+
+```console
+$ ps -e -o cmd,ni, pri,rtprio
+CMD                         NI  PRI RTPRIO
+/sbin/init                   0   19      -
+[kthreadd]                   0   19      -
+[ksoftirqd/0]                0   19      -
+[kworker/0:0H]             -20   39      -
+[rcu_sched]                  0   19      -
+[rcu_bh]                     0   19      -
+[migration/0]                -  139     99   <- p->prio = 0(highest)
+[watchdog/0]                 -  139     99
+[cfinteractive]              -  139     99
+[rpciod]                   -20   39      -
+[kvm_arch_timer]           -20   39      -
+[kvm-irqfd-clean]          -20   39      -
+[kswapd0]                    0   19      -
+[vmstat]                   -20   39      -
+[irq/230-rockchi]            -   90     50
+[vcodec]                   -20   39      -
+[bioset]                   -20  39      -
+[nvme]                     -20  39      -
+[spi32766]                   0  19      -
+[fusb302_wq]               -20  39      -
+[irq/26-mmc1]                -  90     50
+[mmcqd/1]                    -  41      1
+/lib/systemd/systemd-udevd   0  19      -
+-bash                        0  19      -
+./load0                    -20  39      -   
+./load100                  +19   0      -   <- p->prio = 139(lowest)
+```
+
+* 위 명령어는 각 태스크들의 NICE (cfs 태스크에서 사용) Priority (rt및 cfs태스크에서 사용), RT Priority(rt 태스크)를 나타내는 
 
 * 스케줄링 클래스 구조는 기본 CFS스케줄러에서 사용하는 내부 자료구조와 밀접하게 연관되어있습니다. 
 * 예를 들어 각 CPU별로 유지하면서 콜백 함수의 인자로 넘겨지는 실행 큐(sturct rq)는 CFS 스케줄러를 위해 채택한 레드 블랙 트리자료구조를 사용함.
@@ -286,3 +378,7 @@ struct sched_class { /* Defined in 2.6.23:/usr/include/linux/sched.h */
 
 *정기 스케줄러와 단기 스케줄러*
 
+# 7. 선점 스케줄링과 비선점 스케줄링
+- 선점 스케줄링
+    - 프로세스 하나가 장시간 동안 프로세서 독점 방지하여 모든 프로세스에 프로세서를 서비스할 기회 늘림. 따라서 우선순위가 높은 프로세스들이 긴급 처리 요청 할 때 유용
+    - 실시간 시스템에서 인터럽트를 받아들이지 않으면 결과는 예측 불가
