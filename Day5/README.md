@@ -219,7 +219,7 @@ static void __sched notrace __schedule(bool preempt)
 
 
 
-*스케줄링 클랴스 구조 (커널 2.6.23 버전)
+* 스케줄링 클랴스 구조
 
 ```C
 struct sched_class {
