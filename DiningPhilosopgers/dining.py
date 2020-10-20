@@ -6,8 +6,14 @@ import sys
 import threading
 import time
 
-class Fork:
+#user : 0, 1, 2, 3, 4
+#Fork : 0, 1, 2, 3, 4 
+#           0
+#       1       4
+#         2   3
 
+
+class Fork:
     def __init__(self, number):
         #총 5개의 젓가락, 각자 고유한 넘버 가진다
         self.number = number
