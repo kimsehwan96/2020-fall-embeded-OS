@@ -33,7 +33,7 @@ class Fork:
     def __init__(self, number):
         #총 5개의 젓가락, 각자 고유한 넘버 가진다
         self.number = number
-        self.user = -1
+        self.user = -1 #user = -1 일경우 그 누구의 소유도 아님
         self.lock = threading.Condition(threading.Lock()) #공유자원 락
         self.taken = False # 처음에는 모든 젓가락이 내려감
     
@@ -51,6 +51,7 @@ class Fork:
             while self.taken == False:
                 self.lock.wait()
             self.user = -1
+            print("this is dropped user {}".format(self.user))
             self.taken = False
             print("{} dropped {} fork".format(user, self.number))
             self.lock.notifyAll()
@@ -85,6 +86,7 @@ if __name__ == "__main__":
     f = [Fork(i) for i in range(5)]
 
     p = [Philosopher(i, f[i], f[(i+1) % n],  butler) for i in range(5)]
+    # i + 1 % n 의 이유 -> i = 4 , 5 = 5일경우, 0으로 바꿔주기 위해서 (원형)
 
     for i in range(n):
         p[i].start() # 각 철학자 스레드 실행 시작 ~!
