@@ -28,6 +28,7 @@
   
       printf("%s", buffer);
       fclose(fp);
+      free(buffer); // buffer is malloced memory
       return 0;
   }
 
