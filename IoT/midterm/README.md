@@ -19,6 +19,11 @@
 ## 시스템 구성
 
 ![121](images/10.png)
+<strong>개인적으로 배포한 EC2 서비스</strong>
+
+* public ip : 13.125.254.182
+* mqtt port : 1883 (default)
+
 
 - mqtt broker 서버는 AWS EC2 linux 인스턴스 내부에 설치해서 사용한다.
 - 아두이노는 EC2 linux에 설치된 mqtt broker 서버를 통해 subscribe, publish 한다.
